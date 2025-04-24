@@ -1,0 +1,13 @@
+{
+    "name": "shaganaz/libsys",
+    "description": "A library management system",
+    "type": "project",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Shaganaz\\Libsys\\": "src/"
+        }
+    },
+    "require": {},
+    "minimum-stability": "stable"
+}
