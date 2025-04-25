@@ -1,4 +1,4 @@
-<!-- Views/user/create-book.php -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>

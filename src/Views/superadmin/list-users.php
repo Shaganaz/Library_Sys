@@ -37,6 +37,7 @@
             <th>Current Role</th>
             <th>Update Role</th>
             <th>Updated Role</th> 
+            <th>Delete User</th> 
         </tr>
     </thead>
     <tbody>
@@ -61,6 +62,12 @@
                 <td>
                     <?php echo isset($user['updated_role']) ? $user['updated_role'] : ''; ?>
                 </td> 
+                <td>
+                <form action="/superadmin/delete-user" method="POST">
+                        <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                        <button type="submit" onclick="return confirm('Are you sure you want to delete this user?');">Delete</button>
+                    </form>
+                </td>
             </tr>
         <?php endforeach; ?>
     </tbody>

@@ -34,6 +34,7 @@ $searchTerm = isset($_GET['search']) ? strtolower(trim($_GET['search'])) : '';
             <th>Title</th>
             <th>Author</th>
             <th>ISBN</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
@@ -50,6 +51,15 @@ $searchTerm = isset($_GET['search']) ? strtolower(trim($_GET['search'])) : '';
                 <td><?php echo htmlspecialchars($book['title']); ?></td>
                 <td><?php echo htmlspecialchars($book['author']); ?></td>
                 <td><?php echo htmlspecialchars($book['isbn']); ?></td>
+                <td>
+                <a href="/user/edit-book?id=<?php echo urlencode($book['id']); ?>" style="padding: 4px 8px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px; margin-right: 4px;">Edit</a>
+                <form action="/user/delete-book" method="POST" style="display:inline;">
+    <input type="hidden" name="id" value="<?php echo urlencode($book['id']); ?>">
+    <button type="submit" onclick="return confirm('Are you sure you want to delete this book?');" style="padding: 4px 8px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 4px;">Delete</button>
+</form>
+
+                </td>
+
             </tr>
         <?php endforeach; ?>
     <?php else: ?>

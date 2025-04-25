@@ -3,6 +3,7 @@ namespace Shaganaz\Libsys\Controllers;
 
 use Shaganaz\Libsys\Models\Role;
 use Shaganaz\Libsys\Models\User;
+use Shaganaz\Libsys\Models\Book;
 use Shaganaz\Libsys\Core\View;
 class SuperAdminController{
 
@@ -122,5 +123,47 @@ class SuperAdminController{
             ]);
         }
     }
+}
+public function deleteUser()
+{
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $userId = $_POST['user_id'] ?? '';
+
+        if ($userId) {
+            $userModel = new User();
+            if ($userModel->deleteUser($userId)) {
+                $_SESSION['message'] = 'User deleted successfully.';
+            } else {
+                $_SESSION['message'] = 'Failed to delete user.';
+            }
+        } else {
+            $_SESSION['message'] = 'Invalid user ID.';
+        }
+    }
+    header('Location: /superadmin/list-users');
+    exit;
+}
+
+
+public function viewPendingRequests()
+{
+    $bookModel = new Book();
+    $pendingRequests = $bookModel->getPendingRequestsForSuperAdmin();
+    View::render('superadmin/pending-requests', ['pendingRequests' => $pendingRequests]);
+}
+public function approveRequest($requestId)
+{
+    $bookModel = new \Shaganaz\Libsys\Models\Book();
+    $bookModel->approveBySuperAdmin($requestId);
+    header('Location: /superadmin/pending-requests');
+    exit;
+}
+
+public function rejectRequest($requestId)
+{
+    $bookModel = new \Shaganaz\Libsys\Models\Book();
+    $bookModel->rejectBySuperAdmin($requestId);
+    header('Location: /superadmin/pending-requests');
+    exit;
 }
 }

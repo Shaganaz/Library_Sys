@@ -5,4 +5,5 @@
     <li><a href="/superadmin/create-user">Create User</a></li>
     <li><a href="/superadmin/list-users">User List Page</a></li>
     <li><a href="/superadmin/create-role">Create New Role</a></li>
+    <li><a href="/superadmin/pending-requests">Requested Books</a></li> 
 </ul>
