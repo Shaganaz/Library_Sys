@@ -23,6 +23,7 @@
         <input type="text" name="isbn" required><br><br>
 
         <button type="submit">Create Book</button>
+        <a href="/logout" class="btn">Logout</a>
     </form>
 
 </body>

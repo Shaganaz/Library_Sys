@@ -3,9 +3,16 @@ namespace Shaganaz\Libsys\Controllers;
 
 use Shaganaz\Libsys\Models\Role;
 use Shaganaz\Libsys\Models\User;
-use Shaganaz\Libsys\Models\Book;
 use Shaganaz\Libsys\Core\View;
+use Shaganaz\Libsys\Core\Database;
+use PDO;
+use PDOException;
 class SuperAdminController{
+    private $db;
+    public function __construct()
+    {
+        $this->db = Database::getInstance();
+    }
 
     public function showCreateUserForm()
     {
@@ -124,46 +131,68 @@ class SuperAdminController{
         }
     }
 }
-public function deleteUser()
-{
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $userId = $_POST['user_id'] ?? '';
 
-        if ($userId) {
-            $userModel = new User();
-            if ($userModel->deleteUser($userId)) {
-                $_SESSION['message'] = 'User deleted successfully.';
-            } else {
-                $_SESSION['message'] = 'Failed to delete user.';
-            }
-        } else {
-            $_SESSION['message'] = 'Invalid user ID.';
-        }
+public function deleteUser($userId)
+{
+ 
+    if (isset($_SESSION['user']) && $_SESSION['user']['role_name'] == 'super_admin') {
+        $user = $_SESSION['user'];
+    } else {
+        echo "You do not have permission to access this page.";
+        exit;
     }
-    header('Location: /superadmin/list-users');
-    exit;
-}
+
+    try {
+        $query = "SELECT COUNT(*) FROM book_requests WHERE user_id = :user_id";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+        $requestCount = $stmt->fetchColumn();
 
 
-public function viewPendingRequests()
-{
-    $bookModel = new Book();
-    $pendingRequests = $bookModel->getPendingRequestsForSuperAdmin();
-    View::render('superadmin/pending-requests', ['pendingRequests' => $pendingRequests]);
-}
-public function approveRequest($requestId)
-{
-    $bookModel = new \Shaganaz\Libsys\Models\Book();
-    $bookModel->approveBySuperAdmin($requestId);
-    header('Location: /superadmin/pending-requests');
-    exit;
+        $query = "SELECT COUNT(*) FROM borrowed_books WHERE user_id = :user_id";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+        $borrowCount = $stmt->fetchColumn();
+
+        if ($requestCount > 0 || $borrowCount > 0) {
+            echo "User cannot be deleted because they have related records in books, book requests, or borrowed books.";
+            return;
+        }
+
+        $query = "DELETE FROM users WHERE id = :user_id";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        echo "User deleted successfully.";
+    } catch (PDOException $e) {
+        echo "Error: " . $e->getMessage();
+    }
 }
 
-public function rejectRequest($requestId)
+public function showDeleteUserForm($userId)
 {
-    $bookModel = new \Shaganaz\Libsys\Models\Book();
-    $bookModel->rejectBySuperAdmin($requestId);
-    header('Location: /superadmin/pending-requests');
-    exit;
+
+    if ($_SESSION['role'] != 'super_admin') {
+        echo "You do not have permission to delete users.";
+        return;
+    }
+
+    $query = "SELECT name, email FROM users WHERE id = :user_id";
+    $stmt = $this->db->prepare($query);
+    $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+    $stmt->execute();
+    $user = $stmt->fetch();
+
+    if (!$user) {
+        echo "User not found.";
+        return;
+    }
+
+
+    View::render('superadmin/delete-user',['user' =>$user]);
 }
+
 }

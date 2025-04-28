@@ -8,16 +8,15 @@ class BookController
 {
     public function listBooks()
 {
+    $bookModel = new Book();
     if (isset($_GET['search']) && !empty(trim($_GET['search']))) {
         $query = trim($_GET['search']);
-        $bookModel = new Book();
         $books = $bookModel->searchBooks($query);
     } else {
-        $bookModel = new Book();
         $books = $bookModel->getAllBooks(); 
 
     }
-    View::render('user/list-books', ['books' => $books]);
+    View::render('user/list-books', ['books' => $books, 'bookModel'=>$bookModel]);
 }
 
     public function createBook(){
@@ -44,6 +43,9 @@ class BookController
         View::render('user/create-book');
     }
 }
+
+
+
 public function editBook()
 {
     $bookModel = new Book();
@@ -81,6 +83,8 @@ public function editBook()
     }
 }
 
+
+
 public function deleteBook()
 {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -99,16 +103,19 @@ public function deleteBook()
     }
 }
 
+
+
 public function requestBook()
 {
     $user = $_SESSION['user'] ?? null;
 
     if ($user) {
+        $bookModel = new Book();
+        $userId = $user['id'];
         $title = $_POST['title'] ?? '';
         $author = $_POST['author'] ?? '';
         $isbn = $_POST['isbn'] ?? null;
-        $bookRequest = new Book();
-        $bookRequest->requestBook($user['id'], $title, $author, $isbn);
+        $bookModel->requestBook( $userId,$title, $author, $isbn);
         header('Location: /user/request-book?status=pending');
         exit;
     } else {
@@ -118,35 +125,136 @@ public function requestBook()
 }
 
 
-public function approveByLibrarian()
-{
-    $requestId = $_POST['request_id'] ?? null;
-    
-    if ($requestId) {
 
-        $this->book->approveByLibrarian($requestId);
-        header('Location: /librarian/pending-requests'); 
-    } else {
-        header('Location: /librarian/pending-requests'); 
+public function viewBookRequests()
+    {
+        $user = $_SESSION['user'] ?? null;
+        if ($user['role_name'] !== 'librarian') {
+            header("Location: /user/dashboard");
+            exit();
+        }
+
+        $bookModel = new Book();
+        $requests = $bookModel->getPendingRequests();
+
+
+        View::render('librarian/view-requests', ['requests' => $requests]);
     }
-}
 
 
-public function rejectByLibrarian()
-{
-    $requestId = $_POST['request_id'] ?? null;
 
-    if ($requestId) {
+    public function updateRequestStatus()
+    {
+        $user = $_SESSION['user'] ?? null;
+        if ($user['role_name'] !== 'librarian') {
+            header("Location: /user/dashboard");
+            exit();
+        }
+
+        if (isset($_POST['request_id'], $_POST['status'])) {
+            $requestId = $_POST['request_id'];
+            $status = $_POST['status'];
+
+            if($status=='approved'){
+                $status= 'awaiting_super_admin';
+            }
+
+            $bookModel = new Book();
+            $bookModel->updateRequestStatus($requestId, $status);
+            header("Location: /librarian/view-requests");
+            exit();
+        }
+    }
+
+
+
+    public function viewRequests()
+    {
+    $user = $_SESSION['user'] ?? null;
+    if ($user['role_name'] !== 'super_admin') {
+        header("Location: /superadmin/dashboard");
+        exit();
+    }
+    $bookModel = new Book();
+    $requests = $bookModel->getAwaitingSuperAdminRequests(); 
+
+   View::render('superadmin/view-requests', ['requests' => $requests]);
+
+    }
+
+
+
+    public function approveRequest($requestId)
+    {
+        $bookModel = new Book();
+        
+        
+        $result = $bookModel->approveRequest($requestId);
+
+        if ($result) {
+            header('Location: /superadmin/select-dashboard');
+            exit();
+        } else { 
+            echo "Failed to approve request.";
+        }
+    }
+
+
+    public function rejectRequest($requestId)
+    {
+        $bookModel = new Book();
+        $result = $bookModel->rejectRequest($requestId);
+
+        if ($result) {
+            header('Location: /superadmin/select-dashboard');
+            exit();
+        } else {
+            echo "Failed to reject request.";
+        }
+    }
+
+
+
+    public function borrowBook()
+    {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
        
-        $this->book->rejectByLibrarian($requestId);
-        header('Location: /librarian/pending-requests');
-    } else {
-        header('Location: /librarian/pending-requests');
+        if (!isset($_SESSION['user'])) {
+            header('Location: /login');
+            exit;
+        }
+
+        
+        $bookId = $_POST['book_id'] ?? null;
+        if (!$bookId) {
+            header('Location: /user/list-books');
+            exit;
+        }
+
+        
+        $bookModel = new Book();     
+        $borrowedBook = $bookModel->isBookBorrowed($bookId);
+        
+        if ($borrowedBook) {
+            
+            header('Location: /user/list-books?error=already_borrowed');
+            exit;
+        }      
+        $borrowDate = date('Y-m-d H:i:s');
+        $returnDate = date('Y-m-d H:i:s', strtotime('+10 days'));
+        $userId = $_SESSION['user']['id'];       
+        $bookModel->borrowBook($userId, $bookId, $borrowDate, $returnDate);       
+        $bookModel->updateBookStatus($bookId, 'borrowed');       
+        header('Location: /user/list-books?success=book_borrowed');
+        exit;
     }
+    }
+
+   
 }
 
 
 
-}
+
 
 

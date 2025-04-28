@@ -9,4 +9,5 @@
     <label for="name">Role Name:</label>
     <input type="text" id="name" name="name" required>
     <button type="submit">Create Role</button>
+    <a href="/logout" class="btn">Logout</a>
 </form>

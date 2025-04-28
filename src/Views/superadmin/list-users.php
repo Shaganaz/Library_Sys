@@ -63,17 +63,23 @@
                     <?php echo isset($user['updated_role']) ? $user['updated_role'] : ''; ?>
                 </td> 
                 <td>
-                <form action="/superadmin/delete-user" method="POST">
-                        <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                        <button type="submit" onclick="return confirm('Are you sure you want to delete this user?');">Delete</button>
-                    </form>
-                </td>
+    <form action="/superadmin/delete-user" method="POST" onsubmit="return confirm('Are you sure you want to delete this user?');">
+        <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+        <button type="submit">Delete</button>
+    </form>
+</td>
             </tr>
         <?php endforeach; ?>
     </tbody>
 </table>
+<a href="/logout" class="btn">Logout</a>
 <?php if (isset($message)): ?>
     <div class="alert alert-success">
         <?php echo $message; ?>
     </div>
 <?php endif; ?>
+<script>
+function handleDelete(userID){
+    fetch.get()
+}
+</script>

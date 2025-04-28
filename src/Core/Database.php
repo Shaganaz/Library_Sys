@@ -1,6 +1,7 @@
 <?php
 namespace Shaganaz\Libsys\Core;
 use PDO;
+use PDOException;
 class Database
 {
     private static $instance = null;

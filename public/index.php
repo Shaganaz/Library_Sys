@@ -7,8 +7,8 @@ use Shaganaz\Libsys\Controllers\AuthController;
 use Shaganaz\Libsys\Controllers\DashboardController;
 use Shaganaz\Libsys\Controllers\BookController;
 use Shaganaz\Libsys\Controllers\SuperAdminController;
-use Shaganaz\Libsys\Controllers\LibrarianController;
 use Shaganaz\Libsys\Core\View;
+use Shaganaz\Libsys\Models\Book;
 use Shaganaz\Libsys\Middleware\AuthMiddleware;
 
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -22,10 +22,14 @@ if ($uri === '/login') {
         $authController->login();
     } else {
         $authController->showLoginForm();
+        exit;
     }
 }
 
-
+if ($_SERVER['REQUEST_URI'] === '/logout') {
+    $controller = new \Shaganaz\Libsys\Controllers\AuthController();
+    $controller->logout();
+} 
 
 elseif ($uri === '/register') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -33,11 +37,12 @@ elseif ($uri === '/register') {
     } else {
         $authController->showRegisterForm();
     }
-}
+} 
+
 
 elseif ($uri === '/superadmin/select-dashboard') {
-    $user = $_SESSION['user'] ?? null;
     $authMiddleware->handle();
+    $user = $_SESSION['user'] ?? null;
 
     if ($user && $user['role_name'] === 'super_admin') {
 
@@ -46,32 +51,42 @@ elseif ($uri === '/superadmin/select-dashboard') {
         header('Location: /login');
         exit;
     }
-} elseif ($uri === '/superadmin/dashboard') {
-    $user = $_SESSION['user'] ?? null;
+} 
+
+
+elseif ($uri === '/superadmin/dashboard') {
     $authMiddleware->handle();
+    $user = $_SESSION['user'] ?? null;
     if ($user && $user['role_name'] === 'super_admin') {
         $dashboardController->dashboard('superadmin');
     } else {
         header('Location: /superadmin/select-dashboard');
         exit;
     }
-} elseif ($uri === '/user/dashboard') {
-    $user = $_SESSION['user'] ?? null;
+} 
+
+
+elseif ($uri === '/user/dashboard') {
     $authMiddleware->handle();
+    $user = $_SESSION['user'] ?? null;
     if ($user) {
         $dashboardController->dashboard('user');
     } else {
         header('Location: /login');
         exit;
     }
-} elseif (
+} 
+
+
+elseif (
     $uri === '/superadmin/create-user' ||
     $uri === '/superadmin/create-role' ||
     $uri === '/superadmin/list-users' ||
-    $uri === '/superadmin/delete-user'
-) {
-    $user = $_SESSION['user'] ?? null;
+    $uri === '/superadmin/delete-user') 
+    {
     $authMiddleware->handle();
+    $user = $_SESSION['user'] ?? null;
+
 
     if (!$user || $user['role_name'] !== 'super_admin') {
         header('Location: /login');
@@ -84,137 +99,158 @@ elseif ($uri === '/superadmin/select-dashboard') {
         } else {
             $superadminController->showCreateUserForm();
         }
-    } elseif ($uri === '/superadmin/create-role') {
+    } 
+    
+    
+    elseif ($uri === '/superadmin/create-role') {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $superadminController->createRole();
         } else {
             $superadminController->createRoleForm();
         }
-    } elseif ($uri === '/superadmin/list-users') {
+    } 
+    
+    
+    elseif ($uri === '/superadmin/list-users') {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $superadminController->updateUserRole();
         } else {
             $superadminController->listUsers();
         }
-    } elseif ($uri === '/superadmin/delete-user') {
+    } 
+    
+    
+    elseif ($uri === '/superadmin/delete-user') {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $superadminController->deleteUser(); 
+            $userId = $_POST['user_id']; 
+            $superadminController->deleteUser($userId); 
         }
     }
     
-
 } 
+
+
 elseif ($uri === '/user/list-books') {
-    $user = $_SESSION['user'] ?? null;
     $authMiddleware->handle();
-    if ($user && in_array($user['role_name'], ['student', 'teacher', 'librarian','super_admin'])) {
+    $user = $_SESSION['user'] ?? null;
+    if ($user && in_array($user['role_name'], ['student', 'teacher', 'librarian', 'super_admin'])) {
         $bookController->listBooks();
     } else {
         header('Location: /login');
         exit;
     }
-} elseif ($uri === '/user/create-book') {
-    $user = $_SESSION['user'] ?? null;
+} 
+
+
+elseif ($uri === '/user/create-book') {
     $authMiddleware->handle();
-    if ($user && in_array($user['role_name'], ['student', 'teacher', 'librarian','super_admin'])) {
+    $user = $_SESSION['user'] ?? null;
+    if ($user && in_array($user['role_name'], ['student', 'teacher', 'librarian', 'super_admin'])) {
         $bookController->createBook();
     } else {
         header('Location: /login');
         exit;
     }
-} elseif ($uri==='/user/edit-book') {
-    $user = $_SESSION['user'] ?? null;
+} 
+
+
+elseif ($uri === '/user/edit-book') {
     $authMiddleware->handle();
+    $user = $_SESSION['user'] ?? null;
     if ($user && in_array($user['role_name'], ['librarian', 'super_admin'])) {
         $bookController->editBook();
     } else {
         header('Location: /login');
         exit;
     }
-} elseif ($uri === '/user/delete-book') {
-    $user = $_SESSION['user'] ?? null;
+} 
+
+
+elseif ($uri === '/user/delete-book') {
     $authMiddleware->handle();
+    $user = $_SESSION['user'] ?? null;
     if ($user && in_array($user['role_name'], ['librarian', 'super_admin'])) {
         $bookController->deleteBook();
     } else {
         header('Location: /login');
         exit;
     }
-} elseif ($uri === '/user/request-book') {
+} 
+
+
+elseif ($uri === '/user/request-book') {
     $user = $_SESSION['user'] ?? null;
     $authMiddleware->handle();
     if ($user) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $bookController->requestBook(); 
-        }
-
-        else {
-            View::render('user/request-book');  
+            $bookController->requestBook();
+        } else {
+            View::render('user/request-book');
         }
     } else {
         header('Location: /login');
         exit;
     }
-} elseif ($uri === '/superadmin/pending-requests' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+} 
+
+
+elseif ($uri === '/librarian/view-requests') {
     $authMiddleware->handle();
-    $superadminController->viewPendingRequests();
+    $user = $_SESSION['user'] ?? null;
+    if ($user && $user['role_name'] === 'librarian') {
+        $bookController->viewBookRequests();
+    } else {
+        header('Location: /login');
+        exit();
+    }
+} 
+
+
+elseif ($uri === '/librarian/request-status') {
+    $authMiddleware->handle();
+    $user = $_SESSION['user'] ?? null;
+    if ($user && $user['role_name'] === 'librarian') {
+        $bookController->updateRequestStatus();
+    } else {
+        header('Location: /login');
+        exit();
+    }
+} 
+
+
+elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && $_SERVER['REQUEST_URI'] === '/superadmin/view-requests') {
+    $controller = new BookController();
+    $controller->viewRequests();  
+}
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && $_SERVER['REQUEST_URI'] === '/superadmin/request-status') {
+    $requestId = $_POST['request_id'];
+    $status = $_POST['status'];
+    $bookModel = new Book();
+    if ($status === 'approved') {
+        $bookModel->approveRequest($requestId);
+    } elseif ($status === 'rejected') {
+        $bookModel->rejectRequest($requestId);
+    }
+    header('Location: /superadmin/view-requests');
+    exit();
+} 
+
+
+
+elseif ($uri === '/user/borrow-book' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $bookController->borrowBook();
+    if (!isset($_SESSION['user'])) {
+        header('Location: /login');
+        exit;
+    }
 }
 
-elseif ($uri === '/superadmin/approve-request' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $user = $_SESSION['user'] ?? null;
-    $authMiddleware->handle();
-    if ($user && $user['role_name'] === 'super_admin') {
-        $superadminController->approveRequest($_POST['request_id']);
-    } else {
-        header('Location: /login');
-        exit;
-    }
-} elseif ($uri === '/superadmin/reject-request' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $user = $_SESSION['user'] ?? null;
-    $authMiddleware->handle();
-    if ($user && $user['role_name'] === 'super_admin') {
-        $superadminController->rejectRequest($_POST['request_id']);
-    } else {
-        header('Location: /login');
-        exit;
-    }
 
-} elseif ($uri === '/librarian/pending-requests') {
-        $user = $_SESSION['user'] ?? null;
-        $authMiddleware->handle();
-        if ($user && $user['role_name'] === 'librarian') {
-            $librarianController = new  LibrarianController();
-            $librarianController->viewPendingRequests();
-        } else {
-            header('Location: /login');
-            exit;
-        }
-    }
 
-    elseif (preg_match('#^/librarian/approve/(\d+)$#', $uri, $matches)) {
-        $user = $_SESSION['user'] ?? null;
-        $authMiddleware->handle();
-        if ($user && $user['role_name'] === 'librarian') {
-            $requestId = $matches[1];
-            $librarianController = new LibrarianController();
-            $librarianController->approveRequest($requestId);
-        } else {
-            header('Location: /login');
-            exit;
-        }
-    }
-    elseif (preg_match('#^/librarian/reject/(\d+)$#', $uri, $matches)) {
-        $user = $_SESSION['user'] ?? null;
-        if ($user && $user['role_name'] === 'librarian') {
-            $requestId = $matches[1];
-            $librarianController = new LibrarianController();
-            $librarianController->rejectRequest($requestId);
-        } else {
-            header('Location: /login');
-            exit;
-        }
-    }
+
 else {
     http_response_code(404);
-    View::render('errors/404', ['uri' => $uri]);
+    echo "<h1>404 Page Not Found</h1>";
+    echo "<p>The requested page could not be found. Please check the URL and try again.</p>";
+    echo "<p><a href='/'>Go back to the homepage</a></p>";
 }

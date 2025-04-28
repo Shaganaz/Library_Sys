@@ -1,3 +1,5 @@
+<?php
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -55,7 +57,7 @@ p {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome, Super Admin!</title>
-    <link rel="stylesheet" href="styles.css"> <!-- Link to your CSS file -->
+    
 </head>
 <body>
     <div class="container">
@@ -63,7 +65,11 @@ p {
         <p>Choose which dashboard you want to access:</p>
         <div class="dashboard-buttons">
             <a href="/superadmin/dashboard" class="btn btn-superadmin">Super Admin Dashboard</a>
-            <a href="/user/dashboard" class="btn btn-user">User Dashboard</a>
+            <a href="/user/dashboard" class="btn btn-user">User Dashboard</a> 
+            <a href="/logout" class="btn">Logout</a>
+
+                
+            
         </div>
     </div>
 </body>

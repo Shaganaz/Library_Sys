@@ -2,6 +2,7 @@
 namespace Shaganaz\Libsys\Controllers;
 use Shaganaz\Libsys\Core\View;
 use Shaganaz\Libsys\Models\Book;
+use Shaganaz\Libsys\Core\Database;
 class DashboardController
 {
     private function getCurrentUser()
@@ -22,7 +23,7 @@ class DashboardController
         if ($dashboardType === 'select') {
             View::render('superadmin/select-dashboard');
         } elseif ($dashboardType === 'superadmin') {
-            $requests = $bookModel->getAllBookRequests(); 
+            $requests = $bookModel->getPendingRequests(); 
             View::render('superadmin/dashboard', ['requests' => $requests]);
         } elseif ($dashboardType === 'user') {
             View::render('user/dashboard');
@@ -38,6 +39,9 @@ class DashboardController
         View::render('errors/403', ['message' => 'Unauthorized role.']);
     }
 }
+
+
+
 public function showDashboard() {
     $userId = $_SESSION['user_id'];
     

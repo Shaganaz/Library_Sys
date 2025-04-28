@@ -1,8 +1,6 @@
 <?php
 namespace Shaganaz\Libsys\Controllers;
 use Shaganaz\Libsys\Models\User; 
-use Shaganaz\Libsys\Models\Role; 
-use Shaganaz\Libsys\Core\View;
 class AuthController
 {
     public function showLoginForm()
@@ -45,7 +43,13 @@ class AuthController
         }
     }
 
-
+    public function logout() {
+        session_start();  
+        session_unset();  
+        session_destroy();  
+        header("Location: /login");  
+        exit;
+    }
 
     public function register()
 {

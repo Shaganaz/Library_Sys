@@ -22,7 +22,9 @@
     </div>
 
     <button type="submit" style="padding: 10px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px;">Submit Request</button>
+    
 </form>
+<a href="/logout" class="btn">Logout</a>
 <?php
 $status = $_GET['status'] ?? null;
 if ($status === 'pending') {

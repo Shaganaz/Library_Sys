@@ -69,15 +69,6 @@ public function getUserByIdWithRole($userId)
     return $stmt->fetch();
 }
 
-public function deleteUser($userId)
-{
-    $db = Database::getInstance();
-    $stmt = $db->prepare("DELETE FROM users WHERE id = :user_id");
-    $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
-    return $stmt->execute();
-}
-
-
 }
 
 

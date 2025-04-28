@@ -60,9 +60,10 @@ public function deleteBook($id)
     $stmt->execute([':id' => $id]);
 }
 
-public function requestBook($userId, $title, $author, $isbn = null)
+public function requestBook($userId,$title, $author, $isbn = null)
 {
-    $stmt = $this->db->prepare("INSERT INTO book_requests (user_id, title, author, isbn , status) VALUES (:user_id, :title, :author, :isbn, :status)");
+    $userId = $_SESSION['user']['id']; 
+    $stmt = $this->db->prepare("INSERT INTO book_requests (user_id,title, author, isbn , status) VALUES (:user_id,:title, :author, :isbn, :status)");
     return $stmt->execute([
         ':user_id' => $userId,
         ':title'   => $title,
@@ -72,48 +73,88 @@ public function requestBook($userId, $title, $author, $isbn = null)
     ]);
 }
 
-public function getPendingRequestsForSuperAdmin()
+public function getPendingRequests()
 {
-    $stmt = $this->db->prepare("SELECT * FROM book_requests WHERE status = 'approved_by_librarian'");
+    $stmt = $this->db->prepare("SELECT * FROM book_requests WHERE status = 'pending'");
     $stmt->execute();
-    return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-public function getAllBookRequests()
+public function updateRequestStatus($requestId, $status)
 {
-    $stmt = $this->db->prepare("
-        SELECT br.*, u.name AS user_name
-        FROM book_requests br
-        JOIN users u ON br.user_id = u.id
-    ");
+    $stmt = $this->db->prepare("UPDATE book_requests SET status = :status WHERE id = :id");
+    $stmt->execute([
+        ':status' => $status,
+        ':id' => $requestId
+    ]);
+}
+
+public function getAwaitingSuperAdminRequests()
+{
+    $sql = "SELECT * FROM book_requests WHERE status = 'awaiting_super_admin'";
+
+    $stmt = $this->db->prepare($sql);
     $stmt->execute();
-    return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-
-public function approveByLibrarian($requestId)
+public function approveRequest($requestId)
 {
-    $stmt = $this->db->prepare("UPDATE book_requests SET status = 'approved_by_librarian' WHERE id = :id");
-    return $stmt->execute([':id' => $requestId]);
+    $sql = "UPDATE book_requests SET status = 'approved' WHERE id = :id";
+    $stmt = $this->db->prepare($sql);
+    $stmt->bindParam(':id', $requestId, PDO::PARAM_INT);
+    return $stmt->execute();
 }
 
-public function rejectByLibrarian($requestId)
-{
-    $stmt = $this->db->prepare("UPDATE book_requests SET status = 'rejected_by_librarian' WHERE id = :id");
-    return $stmt->execute([':id' => $requestId]);
-}
-
-public function approveBySuperAdmin($requestId)
-{
-    $stmt = $this->db->prepare("UPDATE book_requests SET status = 'approved_by_super_admin' WHERE id = :id");
-    return $stmt->execute([':id' => $requestId]);
-}
-
-public function rejectBySuperAdmin($requestId)
-{
-    $stmt = $this->db->prepare("UPDATE book_requests SET status = 'rejected_by_super_admin' WHERE id = :id");
-    return $stmt->execute([':id' => $requestId]);
-}
+public function rejectRequest($requestId)
+    {
+        $sql = "UPDATE book_requests SET status = 'rejected' WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':id', $requestId, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
 
 
+
+    public function borrowBook($userId, $bookId, $borrowDate, $returnDate)
+    {
+        $query = "INSERT INTO borrowed_books (user_id, book_id, borrow_date, return_date, status)
+                  VALUES (?, ?, ?, ?, 'borrowed')";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->execute([$userId, $bookId, $borrowDate, $returnDate]);
+    }
+
+
+
+    public function isBookBorrowed($bookId) {
+        $query = "SELECT * FROM borrowed_books 
+                  WHERE book_id = :book_id AND status = 'borrowed' LIMIT 1";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':book_id', $bookId);
+        $stmt->execute();
+        
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function returnBook($bookId, $userId) {
+        $query = "UPDATE borrowed_books 
+                  SET return_date = NOW(), status = 'returned' 
+                  WHERE user_id = :user_id AND book_id = :book_id AND status = 'borrowed'";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':user_id', $userId);
+        $stmt->bindParam(':book_id', $bookId);
+        return $stmt->execute();
+    }
+
+    public function updateBookStatus($bookId, $status)
+    {
+        $query = "UPDATE books SET status = ? WHERE id = ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute([$status, $bookId]);
+    }
+    
 }
+
+
