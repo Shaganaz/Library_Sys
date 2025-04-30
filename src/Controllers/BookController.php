@@ -6,18 +6,31 @@ use Shaganaz\Libsys\Models\Book;
 
 class BookController
 {
+
+ 
     public function listBooks()
 {
     $bookModel = new Book();
+    $books = [];
+
     if (isset($_GET['search']) && !empty(trim($_GET['search']))) {
         $query = trim($_GET['search']);
         $books = $bookModel->searchBooks($query);
     } else {
         $books = $bookModel->getAllBooks(); 
-
     }
-    View::render('user/list-books', ['books' => $books, 'bookModel'=>$bookModel]);
+
+    $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
+
+    View::render('user/list-books', [
+        'books' => $books,
+        'bookModel' => $bookModel,
+        'isAjax' => $isAjax
+    ]);
 }
+
+    
+
 
     public function createBook(){
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -34,10 +47,11 @@ class BookController
                 'author' => $author,
                 'isbn' => $isbn
             ]);
-            header('Location: /user/list-books');
+            echo json_encode(['success' => true, 'message' => 'Book created']);
             exit;
         } else {
-            echo "All fields are required.";
+            echo json_encode(['success' => false, 'message' => 'All fields are required.']);
+            exit;
         }
     } else {
         View::render('user/create-book');
@@ -63,23 +77,27 @@ public function editBook()
                 'author' => $author,
                 'isbn' => $isbn
             ]);
-            header('Location: /user/list-books');
+            echo json_encode(['success' => true, 'message' => 'Book updated successfully.']);
             exit;
         } else {
-            echo "All fields are required.";
+            echo json_encode(['success' => false, 'message' => 'All fields are required.']);
+            exit;
         }
-    } else {
+    } else if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $id = $_GET['id'] ?? null;
         if ($id) {
             $book = $bookModel->getBookById($id);
             if ($book) {
-                View::render('user/edit-book', ['book' => $book]);
+                View::render('/user/edit-book', [
+                    'book' => $book
+                ]);
             } else {
-                echo "Book not found.";
+                echo json_encode(['success' => false, 'message' => 'Book not found']);
             }
         } else {
-            echo "Book ID is required.";
+            echo json_encode(['success' => false, 'message' => 'Book ID is required']);
         }
+        exit;
     }
 }
 
@@ -88,41 +106,48 @@ public function editBook()
 public function deleteBook()
 {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        header('Content-Type: application/json');
+
         $id = $_POST['id'] ?? null;
 
         if ($id) {
             $bookModel = new Book();
             $bookModel->deleteBook($id);
-            header('Location: /user/list-books');
-            exit;
+            echo json_encode(['status' => 'success', 'message' => 'Book deleted successfully.']);
         } else {
-            echo "Book ID is required to delete.";
+            echo json_encode(['status' => 'error', 'message' => 'Book ID is required.']);
         }
     } else {
-        echo "Invalid request method.";
+        http_response_code(405); 
+        echo json_encode(['status' => 'error', 'message' => 'Invalid request method.']);
     }
 }
+
 
 
 
 public function requestBook()
 {
+    header('Content-Type: application/json');
     $user = $_SESSION['user'] ?? null;
-
-    if ($user) {
-        $bookModel = new Book();
-        $userId = $user['id'];
-        $title = $_POST['title'] ?? '';
-        $author = $_POST['author'] ?? '';
-        $isbn = $_POST['isbn'] ?? null;
-        $bookModel->requestBook( $userId,$title, $author, $isbn);
-        header('Location: /user/request-book?status=pending');
-        exit;
-    } else {
-        header('Location: /login');
+    if (!$user) {
+        echo json_encode(['success' => false, 'message' => 'User not logged in.']);
         exit;
     }
+    $bookModel = new Book();
+    $userId = $user['id'];
+    $title = $_POST['title'] ?? '';
+    $author = $_POST['author'] ?? '';
+    $isbn = $_POST['isbn'] ?? null;
+    if (trim($title) === '' || trim($author) === '') {
+        echo json_encode(['success' => false, 'message' => 'Title and Author are required.']);
+        exit;
+    }
+    $bookModel->requestBook($userId, $title, $author, $isbn);
+    echo json_encode(['success' => true]);
+    exit;
 }
+
 
 
 
@@ -218,16 +243,17 @@ public function viewBookRequests()
     public function borrowBook()
     {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        header('Content-type:appplication/json');
        
         if (!isset($_SESSION['user'])) {
-            header('Location: /login');
+            echo json_encode(['status' => 'unauthenticated']);
             exit;
         }
 
         
         $bookId = $_POST['book_id'] ?? null;
         if (!$bookId) {
-            header('Location: /user/list-books');
+            echo json_encode(['status' => 'error', 'message' => 'Book ID missing']);
             exit;
         }
 
@@ -237,7 +263,7 @@ public function viewBookRequests()
         
         if ($borrowedBook) {
             
-            header('Location: /user/list-books?error=already_borrowed');
+            echo json_encode(['status' => 'already_borrowed']);
             exit;
         }      
         $borrowDate = date('Y-m-d H:i:s');
@@ -245,7 +271,7 @@ public function viewBookRequests()
         $userId = $_SESSION['user']['id'];       
         $bookModel->borrowBook($userId, $bookId, $borrowDate, $returnDate);       
         $bookModel->updateBookStatus($bookId, 'borrowed');       
-        header('Location: /user/list-books?success=book_borrowed');
+        echo json_encode(['status' => 'success']);
         exit;
     }
     }

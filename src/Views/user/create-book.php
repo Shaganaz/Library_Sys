@@ -9,7 +9,7 @@
 
     <h1>Create a New Book</h1>
 
-    <form method="POST" action="/user/create-book">
+    <form id="createBookForm" method="POST">
         <label>ID:</label>
         <input type="number" name="id" required><br><br>
 
@@ -25,6 +25,34 @@
         <button type="submit">Create Book</button>
         <a href="/logout" class="btn">Logout</a>
     </form>
+
+    
+    <script>
+    document.getElementById('createBookForm').addEventListener('submit', function(e) {
+    e.preventDefault(); 
+
+    const form = e.target;
+    const formData = new FormData(form);
+
+    fetch('/user/create-book', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert('Book created successfully!');
+            window.location.href = '/user/list-books'; 
+        } else {
+            alert(data.message || 'Failed to create book.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Something went wrong.');
+    });
+});
+</script>
 
 </body>
 </html>

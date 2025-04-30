@@ -1,4 +1,3 @@
-<!-- user/borrowed-books.php -->
 <h2>Your Borrowed Books</h2>
 <?php if (!empty($borrowedBooks)): ?>
     <ul>

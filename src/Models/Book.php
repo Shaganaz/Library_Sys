@@ -54,11 +54,35 @@ public function updateBook($data)
         ':isbn' => $data['isbn']
     ]);
 }
-public function deleteBook($id)
+public function deleteBook($bookId)
 {
-    $stmt = $this->db->prepare("DELETE FROM books WHERE id = :id");
-    $stmt->execute([':id' => $id]);
+    // Start a transaction to ensure that both delete operations are executed successfully
+    $this->db->beginTransaction();
+
+    try {
+        // First, remove all records from borrowed_books that reference this book
+        $query = "DELETE FROM borrowed_books WHERE book_id = :book_id";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':book_id', $bookId);
+        $stmt->execute();
+
+        // Now delete the book from the books table
+        $query = "DELETE FROM books WHERE id = :book_id";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':book_id', $bookId);
+        $stmt->execute();
+
+        // Commit the transaction if both queries succeeded
+        $this->db->commit();
+
+        return $stmt->rowCount() > 0;
+    } catch (\Exception $e) {
+        // If any exception occurs, rollback the transaction
+        $this->db->rollBack();
+        throw $e; // Re-throw the exception to handle it higher up (optional)
+    }
 }
+
 
 public function requestBook($userId,$title, $author, $isbn = null)
 {
@@ -129,14 +153,14 @@ public function rejectRequest($requestId)
 
 
     public function isBookBorrowed($bookId) {
-        $query = "SELECT * FROM borrowed_books 
+        $query = "SELECT 1 FROM borrowed_books 
                   WHERE book_id = :book_id AND status = 'borrowed' LIMIT 1";
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':book_id', $bookId);
         $stmt->execute();
-        
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        return $stmt->fetchColumn() !== false;
     }
+    
 
     public function returnBook($bookId, $userId) {
         $query = "UPDATE borrowed_books 
