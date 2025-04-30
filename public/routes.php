@@ -169,13 +169,19 @@ elseif ($uri === '/user/edit-book') {
 elseif ($uri === '/user/delete-book') {
     $authMiddleware->handle();
     $user = $_SESSION['user'] ?? null;
-    if ($user && in_array($user['role_name'], ['librarian', 'super_admin'])) {
+
+    // Handle AJAX POST request from JS
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
+        $user && in_array($user['role_name'], ['librarian', 'super_admin'])) {
+        
+        // Call the controller action that handles JSON response
         $bookController->deleteBook();
     } else {
-        header('Location: /login');
-        exit;
+        http_response_code(403);
+        echo json_encode(['status' => 'error', 'message' => 'Unauthorized or invalid request method']);
     }
-} 
+}
+
 
 
 elseif ($uri === '/user/request-book') {
