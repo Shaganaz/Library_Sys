@@ -21,17 +21,46 @@
                     <td style="padding: 10px; border-bottom: 1px solid #eee;"><?php echo htmlspecialchars($request['isbn']); ?></td>
                     <td style="padding: 10px; border-bottom: 1px solid #eee;"><?php echo htmlspecialchars($request['status']); ?></td>
                     <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                        <form action="/librarian/request-status" method="POST" style="display: flex; gap: 8px;">
-                            <input type="hidden" name="request_id" value="<?php echo $request['id']; ?>">
-                            <button type="submit" name="status" value="approved" style="padding: 6px 10px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">Approve</button>
-                            <button type="submit" name="status" value="rejected" style="padding: 6px 10px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">Reject</button>
-                        </form>
+                    <div style="display: flex; gap: 8px;">
+    <button class="status-btn" data-id="<?= $request['id']; ?>" data-status="approved" style="padding: 6px 10px; background-color: #4CAF50; color: white;">Approve</button>
+    <button class="status-btn" data-id="<?= $request['id']; ?>" data-status="rejected" style="padding: 6px 10px; background-color: #F44336; color: white;">Reject</button>
+</div>
+
                     </td>
                 </tr>
-                <a href="/logout" class="btn">Logout</a>
             <?php endforeach; ?>
         </tbody>
     </table>
+    <a href="/logout" class="btn">Logout</a>
 <?php else: ?>
     <p style="text-align: center;">No pending requests.</p>
 <?php endif; ?>
+
+
+
+<script>
+document.querySelectorAll('.status-btn').forEach(button => {
+    button.addEventListener('click', function () {
+        const requestId = this.getAttribute('data-id');
+        const status = this.getAttribute('data-status');
+
+        fetch('/librarian/request-status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `request_id=${requestId}&status=${status}`
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Failed');
+            return response.text(); 
+        })
+        .then(() => {
+            this.closest('tr').remove();
+        })
+        .catch(error => {
+            alert("Error updating request: " + error.message);
+        });
+    });
+});
+</script>

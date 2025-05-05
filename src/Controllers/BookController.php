@@ -169,27 +169,31 @@ public function viewBookRequests()
 
 
     public function updateRequestStatus()
-    {
-        $user = $_SESSION['user'] ?? null;
-        if ($user['role_name'] !== 'librarian') {
-            header("Location: /user/dashboard");
-            exit();
-        }
-
-        if (isset($_POST['request_id'], $_POST['status'])) {
-            $requestId = $_POST['request_id'];
-            $status = $_POST['status'];
-
-            if($status=='approved'){
-                $status= 'awaiting_super_admin';
-            }
-
-            $bookModel = new Book();
-            $bookModel->updateRequestStatus($requestId, $status);
-            header("Location: /librarian/view-requests");
-            exit();
-        }
+{
+    $user = $_SESSION['user'] ?? null;
+    if ($user['role_name'] !== 'librarian') {
+        http_response_code(403);
+        echo "Unauthorized";
+        exit();
     }
+
+    if (isset($_POST['request_id'], $_POST['status'])) {
+        $requestId = $_POST['request_id'];
+        $status = $_POST['status'] === 'approved' ? 'awaiting_super_admin' : 'rejected';
+
+        $bookModel = new Book();
+        $bookModel->updateRequestStatus($requestId, $status);
+
+        http_response_code(200);
+        echo "Success";
+        exit();
+    }
+
+    http_response_code(400);
+    echo "Invalid request";
+    exit();
+}
+
 
 
 

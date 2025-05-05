@@ -22,26 +22,50 @@ class SuperAdminController{
     }
 
     public function createUser()
-    {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $name = $_POST['name'] ?? '';
-            $email = $_POST['email'] ?? '';
-            $password = $_POST['password'] ?? '';
-            $role_id = $_POST['role_id'] ?? 4;
+{
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $name = $_POST['name'] ?? '';
+        $email = $_POST['email'] ?? '';
+        $password = $_POST['password'] ?? '';
+        $role_id = $_POST['role_id'] ?? 4;
 
-            if ($name && $email && $password && $role_id) {
-                $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-                $userModel = new User();
-                $userModel->createUser($name, $email, $hashedPassword, $role_id);
-                header('Location: /superadmin/dashboard');
-                exit;
-            } else {
-                echo "All fields are required.";
+        if ($name && $email && $password && $role_id) {
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $userModel = new User();
+            $userModel->createUser($name, $email, $hashedPassword, $role_id);
+
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => true,
+                    'message' => "User '$name' created successfully."
+                ]);
+                return;
             }
+
+            header('Location: /superadmin/dashboard');
+            exit;
         } else {
-            $this->showCreateUserForm();
+            $error = "All fields are required.";
+
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'message' => $error
+                ]);
+                return;
+            }
+
+            echo $error;
         }
+    } else {
+        $this->showCreateUserForm();
     }
+}
+
 
 
     public function assignRoles()
@@ -56,8 +80,10 @@ class SuperAdminController{
     View::render('superadmin/create-role'); 
     }
 
+
+
     public function createRole()
-   {
+{
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error_log('POST Data: ' . print_r($_POST, true));
         $name = trim($_POST['name']);
@@ -65,16 +91,40 @@ class SuperAdminController{
         if (!empty($name)) {
             $roleModel = new Role();
             $roleModel->createRole($name);
-            $_SESSION['success_message'] = "New role '$name' has been created!";
+            $successMessage = "New role '$name' has been created!";
+
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => true,
+                    'message' => $successMessage
+                ]);
+                return;
+            }
+
+            $_SESSION['success_message'] = $successMessage;
             header('Location: /superadmin/create-role');
             exit;
         } else {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Role name is required.'
+                ]);
+                return;
+            }
+
             View::render('superadmin/create-role', ['error' => 'Role name is required.']);
         }
     } else {
         View::render('superadmin/create-role');
     }
-   }
+}
+
+
 
     public function listUsers()
     {
@@ -97,6 +147,9 @@ class SuperAdminController{
         'roles' => $roles
     ]);
     }
+
+
+
     public function updateUserRole()
 {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -110,19 +163,30 @@ class SuperAdminController{
             $oldUser = $userModel->getUserByIdWithRole($userId);
             $newRole = $roleModel->getRoleById($newRoleId);
 
-            $userModel->updateUserRole($userId, $newRoleId);         
+            $userModel->updateUserRole($userId, $newRoleId);
             $_SESSION['updated_users'][$userId] = $newRole['name'];
 
             $message = "{$oldUser['name']} ({$oldUser['email']})'s role has been updated from '{$oldUser['role_name']}' to '{$newRole['name']}'.";
+
+            if (
+                !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+            ) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => true,
+                    'updated_role' => $newRole['name'],
+                    'message' => $message
+                ]);
+                return;
+            }
+
             $users = $userModel->getAllUsersWithRoles();
             $roles = $roleModel->getAllRoles();
             foreach ($users as &$user) {
-                if ($user['id'] == $userId) {
-                    $user['updated_role'] = $newRole['name']; 
-                } else {
-                    $user['updated_role'] = ''; 
-                }
+                $user['updated_role'] = $user['id'] == $userId ? $newRole['name'] : '';
             }
+
             View::render('superadmin/list-users', [
                 'users' => $users,
                 'roles' => $roles,
@@ -132,45 +196,45 @@ class SuperAdminController{
     }
 }
 
+
+
 public function deleteUser($userId)
 {
- 
-    if (isset($_SESSION['user']) && $_SESSION['user']['role_name'] == 'super_admin') {
-        $user = $_SESSION['user'];
-    } else {
-        echo "You do not have permission to access this page.";
-        exit;
+    if (!isset($_SESSION['user']) || $_SESSION['user']['role_name'] !== 'super_admin') {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        return;
     }
 
     try {
         $query = "SELECT COUNT(*) FROM book_requests WHERE user_id = :user_id";
         $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindParam(':user_id', $userId);
         $stmt->execute();
         $requestCount = $stmt->fetchColumn();
 
-
         $query = "SELECT COUNT(*) FROM borrowed_books WHERE user_id = :user_id";
         $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindParam(':user_id', $userId);
         $stmt->execute();
         $borrowCount = $stmt->fetchColumn();
 
         if ($requestCount > 0 || $borrowCount > 0) {
-            echo "User cannot be deleted because they have related records in books, book requests, or borrowed books.";
+            echo json_encode(['success' => false, 'message' => 'User has active records. Cannot delete.']);
             return;
         }
 
         $query = "DELETE FROM users WHERE id = :user_id";
         $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindParam(':user_id', $userId);
         $stmt->execute();
 
-        echo "User deleted successfully.";
+        echo json_encode(['success' => true, 'message' => 'User deleted successfully.']);
     } catch (PDOException $e) {
-        echo "Error: " . $e->getMessage();
+        echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
     }
 }
+
 
 public function showDeleteUserForm($userId)
 {

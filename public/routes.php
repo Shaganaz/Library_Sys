@@ -123,9 +123,22 @@ elseif (
     elseif ($uri === '/superadmin/delete-user') {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $userId = $_POST['user_id']; 
-            $superadminController->deleteUser($userId); 
+    
+            // Optional: confirm it’s an AJAX request
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+    
+                header('Content-Type: application/json');
+                $superadminController->deleteUser($userId);
+    
+            } else {
+                // If not AJAX, redirect or show error
+                header('Location: /superadmin/dashboard');
+                exit;
+            }
         }
     }
+    
     
 } 
 
